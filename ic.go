@@ -45,6 +45,12 @@ func readFile(fileName string) (int, []byte) {
 }
 
 func main() {
+
+	if len(os.Args) == 1 {
+		fmt.Printf("%s: need a file name on command line\n", os.Args[0])
+		os.Exit(1)
+	}
+
 	byteCount, byteBuffer := readFile(os.Args[1])
 
 	fmt.Printf("Read %d bytes\n", byteCount)

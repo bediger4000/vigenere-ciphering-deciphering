@@ -52,6 +52,14 @@ func readFile(fileName string) (int, []byte) {
 }
 
 func main() {
+
+	if len(os.Args) < 4 {
+		fmt.Fprintf(os.Stderr, "%s: estimate Vigenere-ciphertext key length\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Usage: %s <filename> N M\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Use <filename> as ciphertext, N lowest key length, M highest key length\n")
+		os.Exit(1)
+	}
+
 	byteCount, byteBuffer := readFile(os.Args[1])
 
 	fmt.Printf("Read %d bytes\n", byteCount)

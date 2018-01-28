@@ -24,6 +24,10 @@ func main() {
 	unshift := flag.Bool("u", false, "unshift the key")
 	flag.Parse()
 
+	if infile == nil || len(os.Args) == 1 {
+		fmt.Fprintf(os.Stderr, "%s: need file name on command line, -r <filename>\n", os.Args[0])
+	}
+
 	fmt.Fprintf(os.Stderr, "Shifts: %q\n", *shiftPtr)
 	fmt.Fprintf(os.Stderr, "Input file: %q\n", *infile)
 

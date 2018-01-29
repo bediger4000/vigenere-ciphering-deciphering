@@ -1,7 +1,10 @@
 # Vigenere Cipher Deciphering
 
-I wanted to learn how to do [Vigenere deciphering](https://en.wikipedia.org/wiki/Vigen%C3%A8re_cipher)
-so I read the Wikipedia page on it, and wrote some programs.
+I came across an enciphered piece of PHP malware, and I
+wanted to figure out the cleartext. I thought the downloader
+might have used a Vigenere cipher.
+
+I read the Wikipedia page on it, and wrote some programs.
 
 ## Programs
 
@@ -25,7 +28,9 @@ key byte values from 0 to 255.
 
 This could use an ASCII key option, because a lot of times that's what you see used.
 
-This could use an alphabet size in bytes
+This could use an alphabet size in bytes - the Wikipedia page
+has a modulo-alphabet-size operation on it, this one effectively
+does mod 256
 
 ### vigkeylength - estimate key length in bytes
 
@@ -49,3 +54,11 @@ The longer the file the more accurate the guess will be.
 Output is in a format suitable for use in the `shift` program from above, with -u flag.
 
 This could use an alphabet size in bytes
+
+### byteshisto - histogram of byte values on stdin
+
+    $ go build byteshisto.go
+    $ ./byteshisto < ciphertext > histo.dat
+
+Build a text histogram (range 0 thru 255) of byte values
+appearing on stdin. Output suitable for use in [gnuplot](http://gnuplot.info/)

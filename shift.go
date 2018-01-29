@@ -20,21 +20,37 @@ import (
 func main() {
 
 	shiftPtr := flag.String("S", "", "Use N/M/... for shifts, N < 256")
+    asciiShiftPtr := flag.String("s", "", "Use string of ASCII bytes for key")
 	infile := flag.String("r", "", "file to encipher")
 	unshift := flag.Bool("u", false, "unshift the key")
+    alphabetSize := flag.Int("N", 256, "Alphabet size, characters")
 	flag.Parse()
 
 	if infile == nil || len(os.Args) == 1 {
 		fmt.Fprintf(os.Stderr, "%s: need file name on command line, -r <filename>\n", os.Args[0])
 	}
 
-	fmt.Fprintf(os.Stderr, "Shifts: %q\n", *shiftPtr)
+	var keylength int
+	var shifts []int
+
+	if shiftPtr != nil && len(*shiftPtr) > 0 {
+		fmt.Fprintf(os.Stderr, "Shifts: %q\n", *shiftPtr)
+		shifts = processShifts(*shiftPtr, *unshift, *alphabetSize)
+		keylength = len(shifts)
+	}
+
+	if asciiShiftPtr != nil && len(*asciiShiftPtr) > 0 {
+		fmt.Fprintf(os.Stderr, "ASCII key: %q\n", *asciiShiftPtr)
+		keylength, shifts = processAsciiKey(*asciiShiftPtr, *unshift, *alphabetSize)
+	}
+
 	fmt.Fprintf(os.Stderr, "Input file: %q\n", *infile)
 
-	shifts := processShifts(*shiftPtr, *unshift)
-	keylength := len(shifts)
-
 	fmt.Fprintf(os.Stderr, "Key length %d: %v\n", keylength, shifts)
+
+	if keylength <= 0 {
+		log.Fatal("keylength <= 0\n")
+	}
 
 	fin, err := os.Open(*infile)
 
@@ -50,7 +66,7 @@ func main() {
 	var i int
 
 	for b, e = rdr.ReadByte(); e == nil; b, e = rdr.ReadByte() {
-		ew := wrtr.WriteByte(byte((int(b) + shifts[i%keylength]) % 256))
+		ew := wrtr.WriteByte(byte((int(b) + shifts[i%keylength]) % *alphabetSize))
 		if ew != nil {
 			fmt.Fprintf(os.Stderr, "Problem writing: %s\n", ew)
 		}
@@ -68,16 +84,42 @@ func main() {
 	fin.Close()
 }
 
-func processShifts(shifts string, unshift bool) []int {
+func processAsciiKey(asciiShifts string, unshift bool, alphabetSize int) (int, []int) {
+	var shiftList []int
+
+	n := 1
+	if unshift { n = -1 }
+
+	bytes := []byte(asciiShifts)
+
+	shiftList = make([]int, len(bytes))
+
+	keylength := 0
+
+	for i, c := range bytes {
+		shiftList[i] = n*int(c)
+		keylength++
+	}
+
+	return keylength, shiftList
+}
+
+func processShifts(shifts string, unshift bool, alphabetSize int) []int {
 
 	var shiftList []int
+
+	factor := 1
+
+	if unshift { factor = -1 }
 
 	shiftsAsStrings := strings.Split(shifts, "/")
 
 	for _, str := range shiftsAsStrings {
 		if n, e := strconv.Atoi(str); e == nil {
-			if unshift { n = -n }
-			shiftList = append(shiftList, n)
+			if n > alphabetSize {
+				fmt.Fprintf(os.Stderr, "Shift value %d greater than slphabet size %d\n", n, alphabetSize)
+			}
+			shiftList = append(shiftList, factor*n)
 		} else {
 			fmt.Printf("Problem with shift %q: %s\n", str, e)
 		}

@@ -40,6 +40,7 @@ func readFile(fileName string) (int, []byte) {
 
 func main() {
 	keylength := flag.Int("l", 1, "key length")
+	alphabetSize := flag.Int("N", 256, "alphabet size")
 	infile := flag.String("r", "", "file to examine")
 	flag.Parse()
 
@@ -50,10 +51,10 @@ func main() {
 	fmt.Fprintf(os.Stderr, "Buffer size %d\n", len(byteBuffer))
 	fmt.Fprintf(os.Stderr, "Assumed key length %d\n", *keylength)
 
-	findKey(byteBuffer, byteCount, *keylength)
+	findKey(byteBuffer, byteCount, *keylength, *alphabetSize)
 }
 
-func findKey(cipherText []byte, cipherTextSize int, keyLength int) {
+func findKey(cipherText []byte, cipherTextSize int, keyLength int, alphabetSize int) {
 
 	var outputKey []int
 	columns := make([][]byte, keyLength)
@@ -72,10 +73,10 @@ func findKey(cipherText []byte, cipherTextSize int, keyLength int) {
 		maxCount := -1
 		maxCountOffset := 0
 
-		for offset := 0; offset < 256; offset++ {
+		for offset := 0; offset < alphabetSize; offset++ {
 			asciiCount := 0
 			for _, b := range col {
-				d := (int(b) - offset)%256
+				d := (int(b) - offset)%alphabetSize
 
 				if isAscii(byte(d)) {
 					asciiCount++

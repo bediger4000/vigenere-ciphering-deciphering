@@ -1,8 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -57,9 +57,10 @@ func main() {
 func findKey(cipherText []byte, cipherTextSize int, keyLength int, alphabetSize int) {
 
 	var outputKey []int
+	var outputBytes []byte
 	columns := make([][]byte, keyLength)
 
-	bufferSize :=  cipherTextSize/keyLength
+	bufferSize := cipherTextSize / keyLength
 	fmt.Printf("Each column has %d bytes\n", bufferSize)
 
 	// Got to be a clever way to just use cipherText[] in place,
@@ -76,7 +77,7 @@ func findKey(cipherText []byte, cipherTextSize int, keyLength int, alphabetSize 
 		for offset := 0; offset < alphabetSize; offset++ {
 			asciiCount := 0
 			for _, b := range col {
-				d := (int(b) - offset)%alphabetSize
+				d := modulo(int(b) - offset, alphabetSize)
 
 				if isAscii(byte(d)) {
 					asciiCount++
@@ -84,7 +85,7 @@ func findKey(cipherText []byte, cipherTextSize int, keyLength int, alphabetSize 
 			}
 			if asciiCount > maxCount {
 				maxCount = asciiCount
-				maxCountOffset = int(offset)
+				maxCountOffset = offset
 			}
 		}
 
@@ -93,6 +94,7 @@ func findKey(cipherText []byte, cipherTextSize int, keyLength int, alphabetSize 
 		fmt.Printf("column %d\t%d\t%d\t%d", colIdx, len(col), maxCount, maxCountOffset)
 		if isAscii(byte(maxCountOffset)) {
 			fmt.Printf("\t%c", byte(maxCountOffset))
+			outputBytes = append(outputBytes, byte(maxCountOffset))
 		}
 		fmt.Printf("\n")
 	}
@@ -103,6 +105,10 @@ func findKey(cipherText []byte, cipherTextSize int, keyLength int, alphabetSize 
 		separater = "/"
 	}
 	fmt.Printf("\n")
+
+	if len(outputBytes) == keyLength {
+		fmt.Printf("%q\n", string(outputBytes));
+	}
 }
 
 func processShifts(shifts string) []int {
@@ -123,8 +129,16 @@ func processShifts(shifts string) []int {
 }
 
 func isAscii(b byte) bool {
-	if b == 9 || b == 10 || b == 13 || (b >= 32 && b <= 127) {
+	if b == '\t' || b == '\n' || b == '\r' || (b >= 32 && b <= 127) {
 		return true
 	}
 	return false
+}
+
+func modulo(d, m int) uint8 {
+	res := d % m
+	if (res < 0 && m > 0) || (res > 0 && m < 0) {
+		return uint8(res + m)
+	}
+	return uint8(res)
 }

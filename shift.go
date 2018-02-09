@@ -20,10 +20,10 @@ import (
 func main() {
 
 	shiftPtr := flag.String("S", "", "Use N/M/... for shifts, N < 256")
-    asciiShiftPtr := flag.String("s", "", "Use string of ASCII bytes for key")
+	asciiShiftPtr := flag.String("s", "", "Use string of ASCII bytes for key")
 	infile := flag.String("r", "", "file to encipher")
 	unshift := flag.Bool("u", false, "unshift the key")
-    alphabetSize := flag.Int("N", 256, "Alphabet size, characters")
+	alphabetSize := flag.Int("N", 256, "Alphabet size, characters")
 	flag.Parse()
 
 	if infile == nil || len(os.Args) == 1 {
@@ -48,6 +48,8 @@ func main() {
 
 	fmt.Fprintf(os.Stderr, "Key length %d: %v\n", keylength, shifts)
 
+	fmt.Fprintf(os.Stderr, "Alphabet size %d\n", *alphabetSize)
+
 	if keylength <= 0 {
 		log.Fatal("keylength <= 0\n")
 	}
@@ -66,7 +68,7 @@ func main() {
 	var i int
 
 	for b, e = rdr.ReadByte(); e == nil; b, e = rdr.ReadByte() {
-		ew := wrtr.WriteByte(byte((int(b) + shifts[i%keylength]) % *alphabetSize))
+		ew := wrtr.WriteByte(modulo(int(b) + shifts[i%keylength], *alphabetSize))
 		if ew != nil {
 			fmt.Fprintf(os.Stderr, "Problem writing: %s\n", ew)
 		}
@@ -88,7 +90,9 @@ func processAsciiKey(asciiShifts string, unshift bool, alphabetSize int) (int, [
 	var shiftList []int
 
 	n := 1
-	if unshift { n = -1 }
+	if unshift {
+		n = -1
+	}
 
 	bytes := []byte(asciiShifts)
 
@@ -97,7 +101,7 @@ func processAsciiKey(asciiShifts string, unshift bool, alphabetSize int) (int, [
 	keylength := 0
 
 	for i, c := range bytes {
-		shiftList[i] = n*int(c)
+		shiftList[i] = n * int(c)
 		keylength++
 	}
 
@@ -110,7 +114,9 @@ func processShifts(shifts string, unshift bool, alphabetSize int) []int {
 
 	factor := 1
 
-	if unshift { factor = -1 }
+	if unshift {
+		factor = -1
+	}
 
 	shiftsAsStrings := strings.Split(shifts, "/")
 
@@ -121,9 +127,17 @@ func processShifts(shifts string, unshift bool, alphabetSize int) []int {
 			}
 			shiftList = append(shiftList, factor*n)
 		} else {
-			fmt.Printf("Problem with shift %q: %s\n", str, e)
+			fmt.Fprintf(os.Stderr, "Problem with shift %q: %s\n", str, e)
 		}
 	}
 
 	return shiftList
+}
+
+func modulo(d, m int) uint8 {
+	res := d % m
+	if (res < 0 && m > 0) || (res > 0 && m < 0) {
+		return uint8(res + m)
+	}
+	return uint8(res)
 }

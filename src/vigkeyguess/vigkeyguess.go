@@ -5,9 +5,23 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 )
+
+type rating struct {
+	count int
+	offset int
+}
+
+const bestN = 4
+
+type ratings []rating
+
+func (a ratings) Len() int { return len(a) }
+func (a ratings) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a ratings) Less(i, j int) bool { return a[i].count > a[j].count }
 
 func handleFn(file *os.File) func(error) {
 	return func(err error) {
@@ -56,8 +70,6 @@ func main() {
 
 func findKey(cipherText []byte, cipherTextSize int, keyLength int, alphabetSize int) {
 
-	var outputKey []int
-	var outputBytes []byte
 	columns := make([][]byte, keyLength)
 
 	bufferSize := cipherTextSize / keyLength
@@ -69,10 +81,11 @@ func findKey(cipherText []byte, cipherTextSize int, keyLength int, alphabetSize 
 		columns[i%keyLength] = append(columns[i%keyLength], cipherText[i])
 	}
 
+	var keyBytes [bestN][]byte
+
 	for colIdx, col := range columns {
 
-		maxCount := -1
-		maxCountOffset := 0
+		var  highestRated ratings;
 
 		for offset := 0; offset < alphabetSize; offset++ {
 			asciiCount := 0
@@ -83,31 +96,36 @@ func findKey(cipherText []byte, cipherTextSize int, keyLength int, alphabetSize 
 					asciiCount++
 				}
 			}
-			if asciiCount > maxCount {
-				maxCount = asciiCount
-				maxCountOffset = offset
+			highestRated = append(highestRated, rating{count: asciiCount, offset: offset})
+			sort.Sort(highestRated)
+			if len(highestRated) > bestN {
+				highestRated = highestRated[:bestN]
 			}
 		}
 
-		outputKey = append(outputKey, maxCountOffset)
-
-		fmt.Printf("column %d\t%d\t%d\t%d", colIdx, len(col), maxCount, maxCountOffset)
-		if isAscii(byte(maxCountOffset)) {
-			fmt.Printf("\t%c", byte(maxCountOffset))
-			outputBytes = append(outputBytes, byte(maxCountOffset))
+		fmt.Printf("column %d\t%d\t", colIdx, len(col))
+		for i, m := range highestRated {
+			fmt.Printf("%d: ", m.count)
+			if isAscii(byte(m.offset)) {
+				fmt.Printf("'%c',\t", m.offset);
+			} else {
+				fmt.Printf("%d,\t", m.offset);
+			}
+			keyBytes[i] = append(keyBytes[i], byte(m.offset))
 		}
 		fmt.Printf("\n")
 	}
 
-	separater := ""
-	for _, offset := range outputKey {
-		fmt.Printf("%s%d", separater, offset)
-		separater = "/"
-	}
-	fmt.Printf("\n")
-
-	if len(outputBytes) == keyLength {
-		fmt.Printf("%q\n", string(outputBytes));
+	for _, byteString := range keyBytes {
+		if len(byteString) == keyLength {
+			fmt.Printf("%q\n", string(byteString))
+		} 
+		separator := ""
+		for _, b := range byteString {
+			fmt.Printf("%s%d", separator, b)
+			separator = "/"
+		}
+		fmt.Printf("\n")
 	}
 }
 

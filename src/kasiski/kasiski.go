@@ -60,15 +60,21 @@ func processBytes(substringSize int, buffer []byte, bufsize int) {
 	for i := 0 ; i < bufsize - substringSize; i++ {
 
 		substring := buffer[i:substringSize+i]
-		skip := false
+		var matches []int
 
 		for j := i+substringSize; j < bufsize - substringSize; j++ {
 			if bytes.Equal(substring, buffer[j:j+substringSize]) {
-				fmt.Printf("%d:%d\t%d\n", i, substringSize, j)
+				matches = append(matches, j)
 				j += substringSize
-				skip = true
 			}
 		}
-		if skip { fmt.Printf("\n") }
+
+		if len(matches) > 1 {
+			fmt.Printf("%d:%d", i, substringSize)
+			for _, idx := range matches {
+				fmt.Printf(" %d", idx)
+			}
+			fmt.Printf("\n")
+		}
 	}
 }

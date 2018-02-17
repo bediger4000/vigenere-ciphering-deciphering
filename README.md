@@ -70,3 +70,19 @@ appearing on stdin. Output suitable for use in [gnuplot](http://gnuplot.info/)
 That illustrates enciphering and deciphering in a single pipeline.
 Affine ciphers seem like a variant of Vigenere ciphers, so I wanted this to try on my
 mystery data. I don't think this is the cipher used.
+
+### kasiski - [Kasiski method](https://en.wikipedia.org/wiki/Kasiski_examination)
+
+`kasiski` counts distance between repeating blocks of bytes. Key length should be
+a factor of the distances between repeating blocks. This should help confirm the
+key length derived from Index of Coindidence by `vigkeylength`
+
+    $ GOPATH=$PWD go build kasiski
+	$ ./kasiski -n substring-length -r filename > distances
+
+File `distances` will have all the distances between repeating substring-length sized
+blocks of bytes in the file. You probably will have to do some post-processing
+on the output, like remove duplicates, sort numerically, etc etc. The more ciphertext
+you've got the better this will work. The key length will be a factor of the distances
+between repeating blocks of bytes. Some distances between repeats will almost certainly
+not have key-length as a factor because of bad luck. You'll have to weed them out.

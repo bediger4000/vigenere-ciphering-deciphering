@@ -86,3 +86,11 @@ on the output, like remove duplicates, sort numerically, etc etc. The more ciphe
 you've got the better this will work. The key length will be a factor of the distances
 between repeating blocks of bytes. Some distances between repeats will almost certainly
 not have key-length as a factor because of bad luck. You'll have to weed them out.
+
+Output (on stdout) has one row per block of bytes:
+
+    3492:7 8008 56112 576 56088
+
+The 7-byte-long block of bytes starting at index 3492 in the
+input file has repeats with distances of 8008, 56112, 576, 56088
+between the repetitions.

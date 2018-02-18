@@ -1,22 +1,31 @@
 package main
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"io"
+	"log"
 	"os"
 )
 
 func main() {
 
-	if len(os.Args) > 1 {
-		fmt.Printf("Histogram of byte values on stdin\n")
-		fmt.Printf("Output suitable for gnuplot plots\n")
-		os.Exit(1)
+	goArrayOutput := flag.Bool("g", false, "Go array output")
+	infile := flag.String("r", "", "File name")
+	flag.Parse()
+
+	fin := os.Stdin
+	if *infile != "" {
+		var err error
+		fin, err = os.Open(*infile)
+		if err != nil {
+			log.Fatalf("Opening input file %q: %s\n", *infile, err)
+		}
 	}
 
 	var count [256]int
 
-	rdr := bufio.NewReader(os.Stdin)
+	rdr := bufio.NewReader(fin)
 
 	var b byte
 	var e error
@@ -37,10 +46,26 @@ func main() {
 		sum += float64(c)
 	}
 
-	fmt.Printf("# Total bytes: %f\n", sum)
-	fmt.Printf("# bytevalue/count of that value/proportion\n")
+	if !*goArrayOutput {
+		fmt.Printf("# Total bytes: %f\n", sum)
+	} else {
+		fmt.Printf("var vector = []int{\n")
+	}
+
+	var sumOfSquares uint64
 
 	for i, c := range count {
-		fmt.Printf("%d\t%d\t%.4f\n", i, c, float64(c)/sum)
+		if *goArrayOutput {
+			sumOfSquares += uint64(c) * uint64(c)
+			fmt.Printf("%d,\n", c)
+		} else {
+			fmt.Printf("%d\t%d\t%.4f\n", i, c, float64(c)/sum)
+		}
+	}
+
+	if *goArrayOutput {
+		fmt.Printf("}\n")
+		fmt.Printf("var Sum float64 = %.1f\n", sum)
+		fmt.Printf("var SumOfSquares float64 = %d.0\n", sumOfSquares)
 	}
 }

@@ -71,8 +71,10 @@ func processBytes(substringSize int, buffer []byte, bufsize int) {
 
 		if len(matches) > 1 {
 			fmt.Printf("%d:%d", i, substringSize)
-			for _, idx := range matches {
-				fmt.Printf(" %d", idx)
+			last := matches[0]
+			for _, idx := range matches[1:] {
+				fmt.Printf(" %d", idx - last)
+				last = idx
 			}
 			fmt.Printf("\n")
 		}

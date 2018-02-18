@@ -94,3 +94,19 @@ Output (on stdout) has one row per block of bytes:
 The 7-byte-long block of bytes starting at index 3492 in the
 input file has repeats with distances of 8008, 56112, 576, 56088
 between the repetitions.
+
+### keyguess - try to find most likely key
+
+    $ GOPATH=$PWD go build keyguess
+	$ ./keyguess [-N alphabet-size] [-t php] [-t english] -r filename a1/a2/a3/...  b1/b2/...  c1/c2/...
+
+From alternative byte values at every position in key, find the "best" key.
+This is based on calculating a 256-D angle between byte-value histograms of a comparison
+(english or PHP text) and potentially decoded bytes from the input file.
+
+Alternative bytes at each position are described by a string like `53/67/89/104`.
+You provide one such string for each position in a key. It can have only one value, or
+it can have multiple values. Each position can have a different count of alternatives.
+`keyguess` iterates through all of the possible combinations of byte values for
+each position, deciphering the input ciphertext with each possible key.
+

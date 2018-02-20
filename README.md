@@ -110,3 +110,13 @@ it can have multiple values. Each position can have a different count of alterna
 `keyguess` iterates through all of the possible combinations of byte values for
 each position, deciphering the input ciphertext with each possible key.
 
+### vig.php - PHP Vigenere encoding.
+
+Did Vigenere encoding in PHP to see how the code looks in PHP,
+how hard it is to code, etc etc.
+
+    $ php vig.php 'keystring' cleartextfilename > ciphertextfilename
+
+You can use `vigkeylength`, `kasiski` and `vigkeyguess` to re-calculate
+the key string.
+

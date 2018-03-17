@@ -62,8 +62,7 @@ func main() {
 
 	byteCount, byteBuffer := readFile(os.Args[1])
 
-	fmt.Printf("Read %d bytes\n", byteCount)
-	fmt.Printf("Buffer size %d\n", len(byteBuffer))
+	fmt.Printf("# Read %d bytes from %q\n", byteCount, os.Args[1])
 
 	smallKeyLen, _ := strconv.Atoi(os.Args[2])
 	largeKeyLen, _ := strconv.Atoi(os.Args[3])

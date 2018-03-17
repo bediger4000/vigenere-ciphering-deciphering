@@ -9,7 +9,13 @@ import (
 	"sort"
 )
 
-type Counter [256][2]byte
+type Counter struct {
+	value byte
+	count int
+}
+
+type CounterSlice []*Counter
+// type ByteSlice []byte
 
 func main() {
 	keylength := flag.Int("l", 1, "key length")
@@ -17,6 +23,7 @@ func main() {
 	infile := flag.String("r", "", "file to examine")
 	exampleFile := flag.String("e", "", "file to emulate")
 	dumpTxp := flag.Bool("D", false, "Dump transposition table")
+	dumpFreq := flag.Bool("F", false, "Dump byte-value frequencies")
 	flag.Parse()
 
 	byteCount, byteBuffer := readFile(*infile)
@@ -39,7 +46,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "buffer %d has %d bytes\n", i, len(row))
 	}
 
-	blocksFreq := make([]*Counter, len(blocks))
+	blocksFreq := make([]CounterSlice, len(blocks))
 
 	for i, row := range blocks {
 		blocksFreq[i] = frequencyCounter(row)
@@ -50,20 +57,12 @@ func main() {
 	fmt.Fprintf(os.Stderr, "Example buffer size %d\n", len(exampleBuffer))
 
 	exampleFreq := frequencyCounter(exampleBuffer)
-	if *dumpTxp {
-		fmt.Printf("Example Frequencies\n")
-		spacer := ""
-		for i := range exampleFreq {
-			fmt.Printf("%s%3d", spacer, exampleFreq[i][0])
-			spacer = " "
+
+	if *dumpFreq {
+		frequencyDump(&exampleFreq, "Example text")
+		for i := range blocksFreq {
+			frequencyDump(&blocksFreq[i], fmt.Sprintf("Block %d", i))
 		}
-		fmt.Printf("\n")
-		spacer = ""
-		for i := range exampleFreq {
-			fmt.Printf("%s%3d", spacer, exampleFreq[i][1])
-			spacer = " "
-		}
-		fmt.Printf("\n\n")
 	}
 
 	transpose := make([][256]byte, len(blocksFreq))
@@ -74,13 +73,13 @@ func main() {
 
 	if *dumpTxp {
 		for i, row := range transpose {
-			fmt.Printf("Transpose %d:\n", i)
+			fmt.Printf("Transpose %d:\nCiphertext: ", i)
 			spacer := ""
 			for j := range row {
 				fmt.Printf("%s%3d", spacer, j)
 				spacer = " "
 			}
-			fmt.Printf("\n")
+			fmt.Printf("\nCleartext:  ")
 			spacer = ""
 			for _, b := range row {
 				fmt.Printf("%s%3d", spacer, b)
@@ -88,6 +87,7 @@ func main() {
 			}
 			fmt.Printf("\n")
 		}
+
 		os.Exit(0)
 	}
 
@@ -104,44 +104,73 @@ func main() {
 	wrtr.Flush()
 }
 
-// Make *Counter sortable on byte count
-func (p *Counter) Len() int { return len(p) }
-func (p *Counter) Swap(i, j int) {
-	p[i][0], p[j][0] = p[j][0], p[i][0]
-	p[i][1], p[j][1] = p[j][1], p[i][1]
-}
-func (p *Counter) Less(i, j int) bool { return p[i][1] < p[j][1] }
-
-func frequencyCounter(buffer []byte) *Counter {
-
-	var freq Counter
-
-	for _, b := range buffer {
-		freq[b][1]++
-		freq[b][0] = b
-	}
+// Make CounterSlice sortable on byte count
+func (p *CounterSlice) Len() int           { return len(*p) }
+func (p *CounterSlice) Swap(i, j int)      { (*p)[i], (*p)[j] = (*p)[j], (*p)[i] }
+func (p *CounterSlice) Less(i, j int) bool { return (*p)[i].count > (*p)[j].count }
 
 /*
-	for i, pair := range freq {
-		if pair[1] == 0 {
-			freq[i][0] = '_'  // Put in '_' for all uncounted values
-		}
-	}
+func (p ByteSlice) Len() int           { return len(p) }
+func (p ByteSlice) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
+func (p ByteSlice) Less(i, j int) bool { return p[i] > p[j] }
 */
+
+func (p Counter) String() string {
+	return fmt.Sprintf("<%d, %d>", p.value, p.count)
+}
+
+func frequencyCounter(buffer []byte) CounterSlice {
+
+	var freq CounterSlice
+
+	freq = make([]*Counter, 256)
+
+	for i := range freq {
+		freq[i] = new(Counter)
+	}
+
+	for _, b := range buffer {
+		if freq[b] == nil {
+			freq[b] = new(Counter)
+		}
+		freq[b].count++
+		freq[b].value = b
+	}
 
 	sort.Sort(&freq)
 
-	return &freq
+	/*
+		for i := len(freq) - 1; freq[i].count == 0 && i >= 0; i-- {
+			freq = freq[0:i]
+		}
+	*/
+
+	return freq
 }
 
-// both cipherText and example should comprise *Counter
-// instances. Make a [256]byte where the index is from
-// ciphertext[N][0], and the value is example[N][0]
-func createTransposition(ciphertext *Counter, example *Counter) [256]byte {
+func frequencyDump(cs *CounterSlice, phrase string) {
+	fmt.Printf("%s\nCount: ", phrase)
+	spacer := ""
+	for i := range *cs {
+		fmt.Printf("%s%3d", spacer, (*cs)[i].count)
+		spacer = " "
+	}
+	fmt.Printf("\nValue: ")
+	spacer = ""
+	for i := range *cs {
+		fmt.Printf("%s%3d", spacer, (*cs)[i].value)
+		spacer = " "
+	}
+	fmt.Printf("\n\n")
+}
+
+// Make a [256]byte where the index is from
+// ciphertext[N].value, and the value is example[N].value
+func createTransposition(ciphertext CounterSlice, example CounterSlice) [256]byte {
 	var txp [256]byte
 
 	for i := 0; i < 256; i++ {
-		txp[ciphertext[i][0]] = example[i][0]
+		txp[ciphertext[i].value] = example[i].value
 	}
 
 	return txp

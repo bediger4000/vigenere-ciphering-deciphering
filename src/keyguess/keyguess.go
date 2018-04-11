@@ -6,6 +6,7 @@ import (
 	"log"
 	"math"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -58,6 +59,17 @@ func main() {
 	findAngles(ciphertext, &compareVector, keyBytes, *alphabetSize)
 }
 
+type KeyKeeper struct {
+	theta float64
+	key []int
+}
+
+type KeyKeepers []*KeyKeeper
+
+func (p KeyKeepers) Len() int { return len(p) }
+func (p KeyKeepers) Swap(i, j int) { p[i], p[j] = p[j], p[i]}
+func (p KeyKeepers) Less(i, j int) bool { return p[i].theta < p[j].theta }
+
 func findAngles(ciphertext []byte, compareVector *Vector, keyBytes Digits, alphabetSize int) {
 
 	var keyCount uint64 = 1
@@ -68,6 +80,7 @@ func findAngles(ciphertext []byte, compareVector *Vector, keyBytes Digits, alpha
 
 	var minTheta = math.MaxFloat32
 
+	var keykeeper KeyKeepers
 	var quit bool
 	var key []int
 	var bestKey []int
@@ -93,6 +106,12 @@ func findAngles(ciphertext []byte, compareVector *Vector, keyBytes Digits, alpha
 		if theta < minTheta {
 			minTheta, bestKey = theta, key
 		}
+
+		k := new(KeyKeeper)
+		k.theta = theta
+		k.key = make([]int, len(key))
+		copy(k.key, key)
+		keykeeper = append(keykeeper, k)
 	}
 
 	fmt.Printf("Best key at %f:\n", minTheta)
@@ -103,6 +122,15 @@ func findAngles(ciphertext []byte, compareVector *Vector, keyBytes Digits, alpha
 		}
 		fmt.Printf("\n")
 	}
+
+	sort.Sort(keykeeper)
+	n := 0
+	for _, k := range keykeeper {
+		fmt.Printf("%.4f\t%v\n", k.theta, k.key)
+		n++
+		if n >= 10 { break }
+	}
+
 }
 
 func traceOutput(theta float64, key []int) {

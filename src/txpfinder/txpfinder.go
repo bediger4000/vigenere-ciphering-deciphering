@@ -15,7 +15,6 @@ type Counter struct {
 }
 
 type CounterSlice []*Counter
-// type ByteSlice []byte
 
 func main() {
 	keylength := flag.Int("l", 1, "key length")
@@ -73,19 +72,7 @@ func main() {
 
 	if *dumpTxp {
 		for i, row := range transpose {
-			fmt.Printf("Transpose %d:\nCiphertext: ", i)
-			spacer := ""
-			for j := range row {
-				fmt.Printf("%s%3d", spacer, j)
-				spacer = " "
-			}
-			fmt.Printf("\nCleartext:  ")
-			spacer = ""
-			for _, b := range row {
-				fmt.Printf("%s%3d", spacer, b)
-				spacer = " "
-			}
-			fmt.Printf("\n")
+			transposeDump(row, fmt.Sprintf("Transpose %d:", i))
 		}
 
 		os.Exit(0)
@@ -108,12 +95,6 @@ func main() {
 func (p *CounterSlice) Len() int           { return len(*p) }
 func (p *CounterSlice) Swap(i, j int)      { (*p)[i], (*p)[j] = (*p)[j], (*p)[i] }
 func (p *CounterSlice) Less(i, j int) bool { return (*p)[i].count > (*p)[j].count }
-
-/*
-func (p ByteSlice) Len() int           { return len(p) }
-func (p ByteSlice) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
-func (p ByteSlice) Less(i, j int) bool { return p[i] > p[j] }
-*/
 
 func (p Counter) String() string {
 	return fmt.Sprintf("<%d, %d>", p.value, p.count)
@@ -149,17 +130,17 @@ func frequencyCounter(buffer []byte) CounterSlice {
 }
 
 func frequencyDump(cs *CounterSlice, phrase string) {
-	fmt.Printf("%s\nCount: ", phrase)
-	spacer := ""
-	for i := range *cs {
-		fmt.Printf("%s%3d", spacer, (*cs)[i].count)
-		spacer = " "
+	fmt.Printf("%s\nCount   Value\n", phrase)
+	for _, counter := range *cs {
+		fmt.Printf("%04x     %02x\n", counter.count, counter.value)
 	}
-	fmt.Printf("\nValue: ")
-	spacer = ""
-	for i := range *cs {
-		fmt.Printf("%s%3d", spacer, (*cs)[i].value)
-		spacer = " "
+	fmt.Printf("\n\n")
+}
+
+func transposeDump(txp [256]byte, phrase string) {
+	fmt.Printf("%s\nCipher    Clear\n", phrase)
+	for in, out := range txp {
+		fmt.Printf("   %02x    %02x\n", in, out)
 	}
 	fmt.Printf("\n\n")
 }
@@ -170,7 +151,9 @@ func createTransposition(ciphertext CounterSlice, example CounterSlice) [256]byt
 	var txp [256]byte
 
 	for i := 0; i < 256; i++ {
-		txp[ciphertext[i].value] = example[i].value
+		if ciphertext[i].count > 0 {
+			txp[ciphertext[i].value] = example[i].value
+		}
 	}
 
 	return txp

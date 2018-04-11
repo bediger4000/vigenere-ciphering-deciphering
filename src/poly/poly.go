@@ -32,19 +32,10 @@ func main() {
 
 	if *dumpTxpPtr {
 		for i, row := range txp {
-			fmt.Printf("Transpose %d:\n", i)
-			spacer := ""
-			for i := range row {
-				fmt.Printf("%s%3d", spacer, i)
-				spacer = " "
+			fmt.Printf("Transpose %d:\nClear   Cipher\n", i)
+			for clearByte, cipherByte := range row {
+				fmt.Printf("   %02x       %02x\n", clearByte, cipherByte)
 			}
-			fmt.Printf("\n")
-			spacer = ""
-			for _, b := range row {
-				fmt.Printf("%s%3d", spacer, b)
-				spacer = " "
-			}
-			fmt.Printf("\n")
 		}
 		os.Exit(0)
 	}
@@ -63,9 +54,13 @@ func main() {
 	var i int
 
 	for b, e = rdr.ReadByte(); e == nil; b, e = rdr.ReadByte() {
-		ew := wrtr.WriteByte(txp[i%len(txp)][b])
-		if ew != nil {
-			log.Fatalf("Problem writing byte %d: %s\n", i, ew)
+		if int(b) < *sizePtr {
+			ew := wrtr.WriteByte(txp[i%len(txp)][b])
+			if ew != nil {
+				log.Fatalf("Problem writing byte %d: %s\n", i, ew)
+			}
+		} else {
+			fmt.Fprintf(os.Stderr, "Byte %d has value %d\n", i, b)
 		}
 		i++
 	}

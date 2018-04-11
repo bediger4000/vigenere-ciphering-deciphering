@@ -12,7 +12,7 @@ import (
 func main() {
 	if len(os.Args) <= 1 {
 		fmt.Printf("Break up a file into pieces by key length\n")
-		fmt.Printf("Usage: %s [-f filename] -l n  n an integer, number of pieces\n", os.Args[0])
+		fmt.Printf("Usage: %s [-d dirname] [-f filename] -l n  n an integer, number of pieces\n", os.Args[0])
 		fmt.Printf("Don't forget '--' to terminate arguments for use in pipeline\n")
 		os.Exit(1)
 	}

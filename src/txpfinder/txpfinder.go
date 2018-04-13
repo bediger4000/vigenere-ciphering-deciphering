@@ -7,6 +7,8 @@ import (
 	"log"
 	"os"
 	"sort"
+	"strconv"
+	"strings"
 )
 
 type Counter struct {
@@ -23,6 +25,7 @@ func main() {
 	exampleFile := flag.String("e", "", "file to emulate")
 	dumpTxp := flag.Bool("D", false, "Dump transposition table")
 	dumpFreq := flag.Bool("F", false, "Dump byte-value frequencies")
+	readTxp := flag.String("R", "", "read transposition tables from filename")
 	flag.Parse()
 
 	byteCount, byteBuffer := readFile(*infile)
@@ -51,23 +54,65 @@ func main() {
 		blocksFreq[i] = frequencyCounter(row)
 	}
 
-	exampleBytes, exampleBuffer := readFile(*exampleFile)
-	fmt.Fprintf(os.Stderr, "Read %d bytes from example\n", exampleBytes)
-	fmt.Fprintf(os.Stderr, "Example buffer size %d\n", len(exampleBuffer))
-
-	exampleFreq := frequencyCounter(exampleBuffer)
-
-	if *dumpFreq {
-		frequencyDump(&exampleFreq, "Example text")
-		for i := range blocksFreq {
-			frequencyDump(&blocksFreq[i], fmt.Sprintf("Block %d", i))
-		}
-	}
-
 	transpose := make([][256]byte, len(blocksFreq))
 
-	for i, freq := range blocksFreq {
-		transpose[i] = createTransposition(freq, exampleFreq)
+	if *readTxp != "" {
+		fd, err := os.Open(*readTxp)
+		if err != nil {
+			log.Fatalf("Couldn't open %q for read: %s\n", *readTxp, err)
+		}
+		defer fd.Close()
+
+		var txpNumber int
+		scanner := bufio.NewScanner(fd)
+		for scanner.Scan() {
+			line := scanner.Text()
+			if line == "" {
+				continue
+			}
+			if line == "Cipher    Clear" {
+				continue
+			}
+			if strings.HasPrefix(line, "Transpose ") {
+				// This will screw up on 2-digit transpose table indexes
+				var e error
+				txpNumber, e = strconv.Atoi(line[10:11])
+				if e != nil {
+					log.Fatalf("Could not read transposition number from %q: %s\n", line, e)
+				}
+				continue
+			}
+			// Get here, just read a line like: "   00    e4"
+			// first number is cipher byte value, 2nd is clear byte value
+			cipherByteValue, cbe := strconv.ParseUint(line[3:5], 0x10, 8)
+			if cbe != nil {
+				log.Fatal(cbe)
+			}
+			clearByteValue, clbe := strconv.ParseUint(line[9:], 0x10, 8)
+			if clbe != nil {
+				log.Fatal(clbe)
+			}
+			transpose[txpNumber][cipherByteValue] = byte(0xff & clearByteValue)
+		}
+
+	} else {
+
+		exampleBytes, exampleBuffer := readFile(*exampleFile)
+		fmt.Fprintf(os.Stderr, "Read %d bytes from example\n", exampleBytes)
+		fmt.Fprintf(os.Stderr, "Example buffer size %d\n", len(exampleBuffer))
+
+		exampleFreq := frequencyCounter(exampleBuffer)
+
+		if *dumpFreq {
+			frequencyDump(&exampleFreq, "Example text")
+			for i := range blocksFreq {
+				frequencyDump(&blocksFreq[i], fmt.Sprintf("Block %d", i))
+			}
+		}
+
+		for i, freq := range blocksFreq {
+			transpose[i] = createTransposition(freq, exampleFreq)
+		}
 	}
 
 	if *dumpTxp {

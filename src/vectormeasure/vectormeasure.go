@@ -79,5 +79,9 @@ func vectorAngle(vector1, vector2 *CountVector) float64 {
 	   	fmt.Printf("%f\n", math.Acos(1.+math.SmallestNonzeroFloat64))
 	*/
 
-	return math.Acos((dotProduct / (math.Sqrt(sumOfSquares1) * math.Sqrt(sumOfSquares2))) + math.SmallestNonzeroFloat64)
+	// math.Acos() undefined for argument -1 <= x >= 1,
+	// and we know that z is positive.
+	cosTheta := dotProduct / (math.Sqrt(sumOfSquares1) * math.Sqrt(sumOfSquares2))
+
+	return 1.00 - cosTheta
 }

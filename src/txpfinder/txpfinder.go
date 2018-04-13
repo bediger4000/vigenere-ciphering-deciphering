@@ -70,7 +70,10 @@ func main() {
 			if line == "" {
 				continue
 			}
-			if line == "Cipher    Clear" {
+			if strings.HasPrefix(line, "Cipher ") {
+				continue
+			}
+			if strings.HasPrefix(line, "Clear ") {
 				continue
 			}
 			if strings.HasPrefix(line, "Transpose ") {
@@ -83,14 +86,15 @@ func main() {
 				continue
 			}
 			// Get here, just read a line like: "   00    e4"
+			//                                   0123456789a"
 			// first number is cipher byte value, 2nd is clear byte value
 			cipherByteValue, cbe := strconv.ParseUint(line[3:5], 0x10, 8)
 			if cbe != nil {
-				log.Fatal(cbe)
+				log.Fatalf("Txp %d, %q: %s\n", txpNumber, line, cbe)
 			}
-			clearByteValue, clbe := strconv.ParseUint(line[9:], 0x10, 8)
+			clearByteValue, clbe := strconv.ParseUint(line[9:11], 0x10, 8)
 			if clbe != nil {
-				log.Fatal(clbe)
+				log.Fatalf("Txp %d, %q: %s\n", txpNumber, line, clbe)
 			}
 			transpose[txpNumber][cipherByteValue] = byte(0xff & clearByteValue)
 		}
@@ -117,7 +121,7 @@ func main() {
 
 	if *dumpTxp {
 		for i, row := range transpose {
-			transposeDump(row, fmt.Sprintf("Transpose %d:", i))
+			transposeDump(row, fmt.Sprintf("Transpose %d", i))
 		}
 
 		os.Exit(0)

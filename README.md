@@ -68,8 +68,9 @@ appearing on stdin. Output suitable for use in [gnuplot](http://gnuplot.info/)
 	$
 
 That illustrates enciphering and deciphering in a single pipeline.
-Affine ciphers seem like a variant of Vigenere ciphers, so I wanted this to try on my
-mystery data. I don't think this is the cipher used.
+Affine ciphers seem like a variant of Vigenere ciphers,
+so I wanted this to try on my mystery data.
+I don't think this is the cipher used.
 
 ### kasiski - [Kasiski method](https://en.wikipedia.org/wiki/Kasiski_examination)
 
@@ -94,6 +95,22 @@ Output (on stdout) has one row per block of bytes:
 The 7-byte-long block of bytes starting at index 3492 in the
 input file has repeats with distances of 8008, 56112, 576, 56088
 between the repetitions.
+
+#### substrings - find repeating substrings of given length
+
+To go along with Kasiski testing,
+this program finds all repeating substrings of bytes of a given length
+in a file,
+and their offsets in the file.
+This was to look for encrypted `"function "` strings in cipertext.
+
+### rshift - make random polytransposition ciphertext
+
+This program creates N random transpositions,
+then runs a cleartext file through the transpositions.
+I used this to create ciphertext that I could try hamming distance,
+kasiski test and index of coincidence key length guessing on.
+How does index of coincidence look vs the unknown files?
 
 ### keyguess - try to find most likely key
 
@@ -120,3 +137,27 @@ how hard it is to code, etc etc.
 You can use `vigkeylength`, `kasiski` and `vigkeyguess` to re-calculate
 the key string.
 
+### vectormeasure - calculate 256-dimension angle between byte value histograms
+
+Gives some idea of the "distance" between two files full of bytes.
+Calculates a byte-value histogram of each file.
+It calculates an angle via dot product by
+treating the byte-value histograms as 256-dimensional vectors.
+
+    $ GOPATH=$PWD go build vectormeasure
+    $ ./vectormeasure filename1 filename2
+    "filename1"  "filename2"        0.013280
+
+The closer to zero the angle is,
+the "closer" the two files are by this measure.
+
+This could maybe be improved by using more than a single
+second filename,
+then calculating angles between "filename1" and each subsequent file.
+
+### txpfinder - transposition finder
+
+Try to find N-byte transpositions for a given key length
+that make resulting byte-value histograms match that of a target file.
+
+This needs to be able to read transpositions to allow human fine tuning.

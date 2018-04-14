@@ -41,10 +41,10 @@ func main() {
 
 	for idx := 0; idx < *keylength; idx++ {
 		have := make(map[int]bool)
-		for i := 0; i < 256; i++ {
-			N := rand.Intn(256)
+		for i := 0; i < *alphabetSize; i++ {
+			N := rand.Intn(*alphabetSize)
 			for y := have[N]; y; y = have[N] {
-				N = rand.Intn(256)
+				N = rand.Intn(*alphabetSize)
 			}
 			have[N] = true
 			txp[idx][i] = N
@@ -55,6 +55,7 @@ func main() {
 		for idx, transpose := range txp {
 			fmt.Fprintf(os.Stderr, "Transpose %d\nCipher   Clear\n", idx)
 			for clear, cipher := range transpose {
+				if clear >= *alphabetSize { break }
 				if isPrintable(clear) && isPrintable(cipher) {
 					fmt.Fprintf(os.Stderr, "*  %02x %c  %02x %c\n", cipher, cipher, clear, clear)
 				} else if isPrintable(clear) {
@@ -76,7 +77,7 @@ func main() {
 	var i int
 
 	for b, e = rdr.ReadByte(); e == nil; b, e = rdr.ReadByte() {
-		ew := wrtr.WriteByte(modulo(txp[i%*keylength][b], *alphabetSize))
+		ew := wrtr.WriteByte(byte(txp[i%*keylength][b]))
 		if ew != nil {
 			fmt.Fprintf(os.Stderr, "Problem writing: %s\n", ew)
 		}

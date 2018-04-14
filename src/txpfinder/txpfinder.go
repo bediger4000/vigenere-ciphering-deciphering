@@ -58,7 +58,7 @@ func main() {
 
 	if *readTxp != "" {
 
-		readTxps(&transpose, *readTxp)
+		readTxps(&transpose, *readTxp, *alphabetSize)
 
 	} else {
 
@@ -197,7 +197,7 @@ func readFile(fileName string) (int, []byte) {
 	return bytesread, buffer
 }
 
-func readTxps(transpositions *[][256]byte, filename string) {
+func readTxps(transpositions *[][256]byte, filename string, alphabetSize int) {
 
 	fd, err := os.Open(filename)
 	if err != nil {
@@ -242,6 +242,12 @@ func readTxps(transpositions *[][256]byte, filename string) {
 		if clbe != nil {
 			log.Fatalf("Txp %d, %q: %s\n", txpNumber, line, clbe)
 		}
-		(*transpositions)[txpNumber][cipherByteValue] = byte(0xff & clearByteValue)
+		if clearByteValue > uint64(alphabetSize) {
+			log.Fprintf(os.Stderr, "Txp %d, %q: clear byte value 0x%02x > alphabet size %d\n",
+				txpNumber, line, clearByteValue, alphabetSize)
+		}
+		if cipherByteValue < uint64(alphabetSize) {
+			(*transpositions)[txpNumber][cipherByteValue] = byte(0xff & clearByteValue)
+		}
 	}
 }

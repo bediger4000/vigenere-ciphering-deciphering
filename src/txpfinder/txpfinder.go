@@ -57,47 +57,8 @@ func main() {
 	transpose := make([][256]byte, len(blocksFreq))
 
 	if *readTxp != "" {
-		fd, err := os.Open(*readTxp)
-		if err != nil {
-			log.Fatalf("Couldn't open %q for read: %s\n", *readTxp, err)
-		}
-		defer fd.Close()
 
-		var txpNumber int
-		scanner := bufio.NewScanner(fd)
-		for scanner.Scan() {
-			line := scanner.Text()
-			if line == "" {
-				continue
-			}
-			if strings.HasPrefix(line, "Cipher ") {
-				continue
-			}
-			if strings.HasPrefix(line, "Clear ") {
-				continue
-			}
-			if strings.HasPrefix(line, "Transpose ") {
-				// This will screw up on 2-digit transpose table indexes
-				var e error
-				txpNumber, e = strconv.Atoi(line[10:11])
-				if e != nil {
-					log.Fatalf("Could not read transposition number from %q: %s\n", line, e)
-				}
-				continue
-			}
-			// Get here, just read a line like: "   00    e4"
-			//                                   0123456789a"
-			// first number is cipher byte value, 2nd is clear byte value
-			cipherByteValue, cbe := strconv.ParseUint(line[3:5], 0x10, 8)
-			if cbe != nil {
-				log.Fatalf("Txp %d, %q: %s\n", txpNumber, line, cbe)
-			}
-			clearByteValue, clbe := strconv.ParseUint(line[9:11], 0x10, 8)
-			if clbe != nil {
-				log.Fatalf("Txp %d, %q: %s\n", txpNumber, line, clbe)
-			}
-			transpose[txpNumber][cipherByteValue] = byte(0xff & clearByteValue)
-		}
+		readTxps(&transpose, *readTxp)
 
 	} else {
 
@@ -234,4 +195,53 @@ func readFile(fileName string) (int, []byte) {
 	fin.Close()
 
 	return bytesread, buffer
+}
+
+func readTxps(transpositions *[][256]byte, filename string) {
+
+	fd, err := os.Open(filename)
+	if err != nil {
+		log.Fatalf("Couldn't open %q for read: %s\n", filename, err)
+	}
+	defer fd.Close()
+
+	var txpNumber int
+	scanner := bufio.NewScanner(fd)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if line == "" {
+			continue
+		}
+		if strings.HasPrefix(line, "Cipher ") {
+			continue
+		}
+		if strings.HasPrefix(line, "Clear ") {
+			continue
+		}
+		if strings.HasPrefix(line, "Transpose ") {
+			var e, e2 error
+			txpNumber, e = strconv.Atoi(line[10:11])
+			if e != nil {
+				txpNumber, e2 = strconv.Atoi(line[10:12])
+				if e2 != nil {
+					log.Fatalf("Could not read transposition number from %q: %s\n", line, e2)
+				} else {
+					log.Fatalf("Could not read transposition number from %q: %s\n", line, e)
+				}
+			}
+			continue
+		}
+		// Get here, just read a line like: "   00    e4"
+		//                                   0123456789a"
+		// first number is cipher byte value, 2nd is clear byte value
+		cipherByteValue, cbe := strconv.ParseUint(line[3:5], 0x10, 8)
+		if cbe != nil {
+			log.Fatalf("Txp %d, %q: %s\n", txpNumber, line, cbe)
+		}
+		clearByteValue, clbe := strconv.ParseUint(line[9:11], 0x10, 8)
+		if clbe != nil {
+			log.Fatalf("Txp %d, %q: %s\n", txpNumber, line, clbe)
+		}
+		(*transpositions)[txpNumber][cipherByteValue] = byte(0xff & clearByteValue)
+	}
 }

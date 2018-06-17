@@ -243,7 +243,7 @@ func readTxps(transpositions *[][256]byte, filename string, alphabetSize int) {
 			log.Fatalf("Txp %d, %q: %s\n", txpNumber, line, clbe)
 		}
 		if clearByteValue > uint64(alphabetSize) {
-			log.Fprintf(os.Stderr, "Txp %d, %q: clear byte value 0x%02x > alphabet size %d\n",
+			log.Printf("Txp %d, %q: clear byte value 0x%02x > alphabet size %d\n",
 				txpNumber, line, clearByteValue, alphabetSize)
 		}
 		if cipherByteValue < uint64(alphabetSize) {

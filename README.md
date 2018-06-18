@@ -83,6 +83,18 @@ so I wanted this to try on my mystery data.
 
 ### Differential xor encoding
 
+Xor encoding where first input byte xor-ed with an initialisation byte.
+Every subsequent input byte gets xor-ed with the preceding byte.
+Two interpretations of that are possible: xor with the next input byte,
+or xor with the input byte itself xored with the previous byte.
+
+    $ GOPATH=$PWD go build diffxor
+    $ ./diffxor -N 123 -r some.file > ciphertext
+    $ ./diffxor -N 123 -d -r ciphertext > cleartext
+
+You could actually use the "-d" flag on to encode.
+An invocation without "-d" would decode in that case.
+
 ### kasiski - [Kasiski method](https://en.wikipedia.org/wiki/Kasiski_examination)
 
 `kasiski` counts distance between repeating blocks of bytes.
@@ -169,7 +181,15 @@ This could maybe be improved by using more than a single
 second filename,
 then calculating angles between "filename1" and each subsequent file.
 
-### chisquared - 
+### chisquared - chi-squared similarity measure of two files
+
+    $ GOPATH=$PWD go build chisquared
+    $ ./chisquared filename1 filename2
+    "filename1" "filename2"  523.975279
+
+The smaller the measure,
+the less difference between the two files,
+with 0.00 as a minimum for identical files.
 
 ### txpfinder - transposition finder
 
@@ -177,3 +197,5 @@ Try to find N-byte transpositions for a given key length
 that make resulting byte-value histograms match that of a target file.
 
 This needs to be able to read transpositions to allow human fine tuning.
+
+    $ GOPATH=$PWD go build txpfinder

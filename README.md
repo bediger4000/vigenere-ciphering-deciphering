@@ -133,10 +133,17 @@ This was to look for encrypted `"function "` strings in cipertext.
 
 ### rshift - make random polytransposition ciphertext
 
+    $ GOPATH=$PWD go build rshift
+
 This program creates N random transpositions,
 then runs a cleartext file through the transpositions.
 I used this to create ciphertext that I could try hamming distance,
 kasiski test and index of coincidence key length guessing on.
+
+You can generate transposition tables for [txpfinder](#txpfinder)
+to work on.
+
+    $ ./rshift -D -l 4  -r some.file > ciphertext 2> transpositions
 
 ### keyguess - try to find most likely key
 
@@ -196,6 +203,6 @@ with 0.00 as a minimum for identical files.
 Try to find N-byte transpositions for a given key length
 that make resulting byte-value histograms match that of a target file.
 
-This needs to be able to read transpositions to allow human fine tuning.
-
     $ GOPATH=$PWD go build txpfinder
+
+

@@ -5,9 +5,16 @@ and I wanted to figure out the cleartext.
 I thought the downloader might have used a Vigenere cipher.
 I was wrong, it was base64 encoded, then XOR-encoded.
 
-I read the Wikipedia page on it, and wrote some programs.
+In any case,
+I read the Wikipedia pages on [Vigenere ciphers](https://en.wikipedia.org/wiki/Caesar_cipher),
+and [classical ciphers](https://en.wikipedia.org/wiki/Classical_cipher)
+and wrote some programs.
+Here they are.
 
 ## Programs
+
+I wrote a mix of ciphering/deciphering and analysis programs.
+I learned as I went along.
 
 ### ic - calculate Index of Coincidence
 
@@ -48,9 +55,17 @@ I find that multiple of the key length end up as low values for some reason.
     $ GOPATH=$PWD go build vigkeyguess
     $ ./vigkeyguess -N 127 -l 5 -r ciphertext
 
-The example finds the most likely 5-byte-long key for a file named "ciphertext",
-for a 127-value (values 0 - 126) alphabet.
-The longer the file the more accurate the guess will be.
+The example finds the most likely 5-byte-long key
+for a file named "ciphertext",
+for a 127-value (values 0 - 126) alphabet.  The
+longer the file the more accurate the guess will be.
+
+`vigkeyguess` divides the input file into keylength number of bins
+by counting off bytes: every Nth byte goes in bin N.
+`vigkeyguess` finds a "rotation" for each bin that
+maximizes the number of valid ASCII characters for that bin.
+A rotation is a value that gets added to each of the bytes
+in a bin, modulo alphabet size.
 
 Output is in a format suitable for use in the `shift` program from above, with -u flag.
 
@@ -188,6 +203,13 @@ This could maybe be improved by using more than a single
 second filename,
 then calculating angles between "filename1" and each subsequent file.
 
+The files don't have to be full of text: `vectormeasure` doesn't
+assume anything about encoding or representation.
+On the other hand, it doesn't know anything about headers or
+other parts of files that are very similar from file to file.
+It might give similarity measures that don't make sense for PNG
+or GIF files.
+
 ### chisquared - chi-squared similarity measure of two files
 
     $ GOPATH=$PWD go build chisquared
@@ -201,8 +223,84 @@ with 0.00 as a minimum for identical files.
 ### txpfinder - transposition finder
 
 Try to find N-byte transpositions for a given key length
-that make resulting byte-value histograms match that of a target file.
+that result in byte-value histograms matching those
+of a target file.
 
     $ GOPATH=$PWD go build txpfinder
 
+I wanted a program to find transpositions,
+not just "rotations",
+of characters in an enciphered file.
+My `vigkeyguess` program did not decipher the malware
+files correctly,
+so I thought that perhaps the encoding was
+jumbling the bytes in the files,
+rather than just shifting them.
 
+The idea behind `txpfinder` is to divide the input bytes
+into "keylength" number of bins, byte number x going into
+bin x modulo keylength.
+Bytes in a given bin theoretically got jumbled using the
+same transposition.
+
+`txpfinder` creates a byte-value count of each bin,
+and it also creates a byte-value count of an example file.
+Because PHP source will have a different character count
+than English text, one histogram does not fit all.
+`txpfinder` matches a bin's byte-value counts against
+the byte-value counts of the example file,
+deriving a transposition that should match enciphered
+bytes to cleartext bytes.
+
+An invocation like this:
+
+    $ ./txpfinder -N 128 -e lang/english -l 2 -r ciphertext
+
+would put odd numbered bytes of file `ciphertext` in one bin,
+even numbered in another (`-l 2`, keylength of 2).
+It would create an example byte-value count of file `lang/english`,
+but only bytes with values less than 128.
+It would count byte values in each of the bins,
+then order the byte-value counts for each of the bins,
+matching them against the byte-value count for the example file.
+`txpfinder` would ultimately output its best guess at cleartext.
+
+Unfortunately, the ciphertext bytes often have an ambiguous
+sort: two byte values will have exactly the same count,
+which leaves `txpfinder` probably making an incorrect
+correspondence between cipher byte value and example byte value.
+
+An invocation like this:
+
+    $ ./txpfinder -D -N 128 -e lang/english -l 2 -r ciphertext > transpose
+
+performs the same work, but outputs 2 byte-value transpositions.
+Humans can adjust the correspondence from cipher byte value
+to cleartext byte value.
+
+    $ ./txpfinder -R transpose -N 128 -e lang/english -l 2 -r ciphertext > cleartext
+
+causes `txpfinder` to use the byte-value correspondence
+in file named `transpose` to create cleartext on stdout.
+
+Hopefully, the `rshift` program can output transpositions
+that `txpfinder` can use to create cleartext.
+`rshift` puts byte-value correspondence on stderr,
+so that it can put ciphertext using that correspondence on stdout.
+
+#### Transposition Finder experience
+
+I created a 110Kb file containing English text by
+concatenating README files from a large variety of projects,
+mine and others.
+I could only get `txpfinder` to approximately correctly
+decipher transpositions of keylength 1,
+using the English text that got enciphered as the example.
+
+    $ ./rshift -N 128 -l 1  -r lang/english > ciphertext
+    $ ./txpfinder -N 128 -l 1  -e lang/english -r ciphertext > cleartext
+
+`txpfinder` can decipher keylengths of 2 or more
+only approximately, often yeilding only amusing gibberish.
+Apparently deciphering character transpositions takes
+very large example texts and enciphered text.

@@ -18,7 +18,7 @@ I learned as I went along.
 
 ### ic - calculate Index of Coincidence
 
-	$ GOPATH=$PWD go build ic
+	$ go build src/ic/ic.go
 	$ ./ic some.filename
 
 `ic` calculates the Index of Coincidence of a file full of bytes.
@@ -27,7 +27,7 @@ This calculates the Index of Coincidence for the entire file.
 
 ### shift - Vigenere ciphering and deciphering
 
-	$ GOPATH=$PWD go build shift
+	$ go build src/shift/shift.go
 	$ ./shift -S 56/67/99/105 -r inputfile > ciphertext
     $ ./shift -u -S 56/67/99/105 -r ciphertext > cleartext
 
@@ -43,7 +43,7 @@ key byte values from 0 to 255.
 
 ### vigkeylength - estimate key length in bytes
 
-    $ GOPATH=$PWD go build vigkeylength
+    $ go build src/vigkeylength/vigkeylength.go
     $ ./vigkeylength filename 4 40
 
 That will give Index of Coincidence values for keys between 4 and 40 bytes.
@@ -52,7 +52,7 @@ I find that multiple of the key length end up as low values for some reason.
 
 ### vigkeyguess - calculate guess of cipher key
 
-    $ GOPATH=$PWD go build vigkeyguess
+    $ go build src/vigkeyguess/vigkeyguess.go
     $ ./vigkeyguess -N 127 -l 5 -r ciphertext
 
 The example finds the most likely 5-byte-long key
@@ -69,9 +69,23 @@ in a bin, modulo alphabet size.
 
 Output is in a format suitable for use in the `shift` program from above, with -u flag.
 
+### keyelim - find key of Vigenere ciphertext by "key elimination"
+
+    $ go build src/keyelim/keyelim.go
+    $ ./keyelim -l 5 -r ciphertext -s knownplaintext
+
+Does [key elimination](https://en.wikipedia.org/wiki/Vigen%C3%A8re_cipher#Key_elimination)
+for ciphertext from a true Vigenere cipher.
+See [shift](https://github.com/bediger4000/vigenere-ciphering-deciphering#shift---vigenere-ciphering-and-deciphering)
+in this repo for just such an enciphering.
+You do have to know the length of the key, and some known plaintext that appears in
+the original clear text.
+The known plaintext has to have a greate length than the key,
+the greater the better.
+
 ### byteshisto - histogram of byte values on stdin
 
-    $ GOPATH=$PWD go build byteshisto
+    $ go build src/byteshisto/byteshisto.go
     $ ./byteshisto < ciphertext > histo.dat
 
 Build a text histogram (range 0 thru 255) of byte values appearing on stdin.
@@ -79,7 +93,7 @@ Output suitable for use in [gnuplot](http://gnuplot.info/)
 
 ### shortshisto - histogram of 2-byte values on stdin
 
-    $ GOPATH=$PWD go build shortshisto
+    $ go build src/shortshisto/shortshisto.go
     $ ./shortshisto < ciphertext > histo.dat
 
 Build a text histogram (range 0 thru 65536)
@@ -88,7 +102,7 @@ Output suitable for use in [gnuplot](http://gnuplot.info/)
 
 ### affine - [affine enciphering/deciphering](https://en.wikipedia.org/wiki/Affine_cipher)
 
-    $ GOPATH=$PWD go build affine
+    $ go build src/affine/affine.go
     $ ./affine -m 256 -a 11 -b 120 -f cleartext | ./affine -u -m 256 -a 11 -b 120 > deciphered
 	$ diff cleartext deciphered
 
@@ -103,7 +117,7 @@ Every subsequent input byte gets xor-ed with the preceding byte.
 Two interpretations of that are possible: xor with the next input byte,
 or xor with the input byte itself xored with the previous byte.
 
-    $ GOPATH=$PWD go build diffxor
+    $ go build src/diffxor/diffxor.go
     $ ./diffxor -N 123 -r some.file > ciphertext
     $ ./diffxor -N 123 -d -r ciphertext > cleartext
 
@@ -117,7 +131,7 @@ Key length should be a factor of the distances between repeating blocks.
 This should help confirm the key length
 derived from Index of Coindidence by `vigkeylength`
 
-    $ GOPATH=$PWD go build kasiski
+    $ go build src/kasiski/kasiski.go
 	$ ./kasiski -n substring-length -r filename > distances
 
 File `distances` will have all the distances between repeating substring-length sized blocks of bytes in the file.
@@ -148,7 +162,7 @@ This was to look for encrypted `"function "` strings in cipertext.
 
 ### rshift - make random polytransposition ciphertext
 
-    $ GOPATH=$PWD go build rshift
+    $ go build src/rshift/rshift.go
 
 This program creates N random transpositions,
 then runs a cleartext file through the transpositions.
@@ -162,7 +176,7 @@ to work on.
 
 ### keyguess - try to find most likely key
 
-    $ GOPATH=$PWD go build keyguess
+    $ go build src/keyguess/keyguess.go
 	$ ./keyguess [-N alphabet-size] [-t php] [-t english] -r filename a1/a2/a3/...  b1/b2/...  c1/c2/...
 
 From alternative byte values at every position in key, find the "best" key.
@@ -192,7 +206,7 @@ Calculates a byte-value histogram of each file.
 It calculates an angle via dot product by
 treating the byte-value histograms as 256-dimensional vectors.
 
-    $ GOPATH=$PWD go build vectormeasure
+    $ go build src/vectormeasure/vectormeasure.go
     $ ./vectormeasure filename1 filename2
     "filename1"  "filename2"        0.013280
 
@@ -212,7 +226,7 @@ or GIF files.
 
 ### chisquared - chi-squared similarity measure of two files
 
-    $ GOPATH=$PWD go build chisquared
+    $ go build src/chisquared/chisquared.go
     $ ./chisquared filename1 filename2
     "filename1" "filename2"  523.975279
 
@@ -226,7 +240,7 @@ Try to find N-byte transpositions for a given key length
 that result in byte-value histograms matching those
 of a target file.
 
-    $ GOPATH=$PWD go build txpfinder
+    $ go build src/txpfinder/txpfinder.go
 
 I wanted a program to find transpositions,
 not just "rotations",

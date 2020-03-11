@@ -69,10 +69,11 @@ in a bin, modulo alphabet size.
 
 Output is in a format suitable for use in the `shift` program from above, with -u flag.
 
-### keyelim - find key of Vigenere ciphertext by "key elimination"
+### keyelim - find key of Vigenere or Xor-encoded ciphertext by "key elimination"
 
     $ go build src/keyelim/keyelim.go
     $ ./keyelim -l 5 -r ciphertext -s knownplaintext
+    $ ./keyelim -l 5 -r xorciphertext -s knownplaintext -x
 
 Does [key elimination](https://en.wikipedia.org/wiki/Vigen%C3%A8re_cipher#Key_elimination)
 for ciphertext from a true Vigenere cipher.
@@ -82,6 +83,7 @@ You do have to know the length of the key, and some known plaintext that appears
 the original clear text.
 The known plaintext has to have a greate length than the key,
 the greater the better.
+The same procedure works for an Xor-encoded ciphertext that you have a known plaintext for.
 
 ### byteshisto - histogram of byte values on stdin
 

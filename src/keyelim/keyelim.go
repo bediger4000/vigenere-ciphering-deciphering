@@ -16,6 +16,21 @@ package main
  * short messages.
  * --
  *
+ * This program can do xor-encoded ciphertext key elimination as well.
+ * xor is commutative - you don't even have to deal with modulo.
+ * ciphertext byte i is Ci = (Mi ^ Ki)
+ * ciphertext byte j == i+keylen is Cj = (Mj ^ Ki), because the same
+ * key byte value gets used at position i and i+keylen
+ * Ci ^ Cj == (Mi ^ Ki) ^ (Mj ^ Ki)
+ * Ci ^ Cj == Mi ^ (Ki ^ (Mj ^ Ki))
+ * Ci ^ Cj == Mi ^ (Ki ^ (Ki ^ Mj))
+ * Ci ^ Cj == Mi ^ ((Ki ^ Ki) ^ Mj)
+ * Ci ^ Cj == Mi ^ (0 ^ Mj)
+ * Ci ^ Cj == Mi ^ Mj
+ * j == i + keylen
+ * The same procedure to find offset of a known cleartext works
+ * for both Vigenere-encoded bytes and Xor-encoded bytes.
+ *
  * This code assumes 1 byte per letter, that Go type byte is unsigned,
  * and that doing (byte - byte) arithmetic is implicitly modulo 256.
  * It also reads the entire ciphertext into memory, so very large texts
@@ -31,11 +46,15 @@ import (
 	"os"
 )
 
+type selfModification func(buffer []byte, keylen int) []byte
+type byteRecovery func(byte, byte) byte
+
 func main() {
 
 	keylen := flag.Int("l", 4, "key length")
 	filename := flag.String("r", "", "input file")
 	str := flag.String("s", "", "known cleartext")
+	xorElimination := flag.Bool("x", false, "assume xor-encoded input (default Vigenere)")
 	flag.Parse()
 
 	if *filename == "" {
@@ -51,18 +70,25 @@ func main() {
 		log.Fatal(err)
 	}
 
+	var modificationFunction selfModification = selfSubtract
+	var recoveryFunction byteRecovery = subtractByte
+	if *xorElimination {
+		modificationFunction = selfXor
+		recoveryFunction = xorByte
+	}
+
 	length := len(buffer)
 
-	// Subtract the cipher text from itself, offset by the key length.
-	// The first *keylen bytes of haystack are not self-subtracted,
+	// Subtract/Xor the cipher text from itself, offset by the key length.
+	// The first *keylen bytes of haystack are not self-subtracted/xored,
 	// so if that's the only match to the known cleartext, key elimination
 	// won't work.
-	haystack := selfSubtract(buffer, *keylen)
+	haystack := modificationFunction(buffer, *keylen)
 
 	// Subtract the known text from itself, offset by the key length.
 	// The only unusual thing here is what bytes of the known text are
 	// searchable.
-	needle := selfSubtract([]byte(*str), *keylen)
+	needle := modificationFunction([]byte(*str), *keylen)
 	needle = needle[:len(*str)-*keylen]
 	fmt.Fprintf(os.Stderr, "Using known text buffer %v\n", needle)
 	if len(needle) <= 3 {
@@ -86,8 +112,7 @@ func main() {
 				keybytes := make([]byte, *keylen)
 
 				for j := 0; j < *keylen; j++ {
-					// the "modulo 256" is implicit in the []byte type
-					keybytes[j] = buffer[i+j] - clearbytes[j]
+					keybytes[j] = recoveryFunction(buffer[i+j], clearbytes[j])
 				}
 
 				// The key bytes recovered may be in any alignment with cleartext.
@@ -113,4 +138,21 @@ func selfSubtract(buffer []byte, keylen int) []byte {
 		copied[i] = buffer[i] - buffer[i+keylen]
 	}
 	return copied
+}
+
+func selfXor(buffer []byte, keylen int) []byte {
+	length := len(buffer)
+	copied := make([]byte, length)
+	for i := 0; i < length-keylen; i++ {
+		copied[i] = buffer[i] ^ buffer[i+keylen]
+	}
+	return copied
+}
+
+func subtractByte(a, b byte) byte {
+	return a - b
+}
+
+func xorByte(a, b byte) byte {
+	return a ^ b
 }
